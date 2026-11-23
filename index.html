@@ -1,0 +1,1050 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Synthwave Tic Tac Toe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --neon-blue-glow: rgba(0, 210, 255, 0.75);
+            --neon-red: #ff2a5f;
+            --neon-red-glow: rgba(255, 42, 95, 0.85);
+            --neon-purple: #b537f2;
+            --neon-purple-glow: rgba(181, 55, 242, 0.7);
+            --bg-dark: #070316;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 50% 25%, #190a38 0%, #09041c 55%, #04010d 100%);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Starfield */
+        .stars {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(1.5px 1.5px at 15% 18%, rgba(255,255,255,0.6) 50%, transparent 100%),
+                radial-gradient(1px 1px at 82% 24%, rgba(0,210,255,0.7) 50%, transparent 100%),
+                radial-gradient(2px 2px at 78% 15%, rgba(255,255,255,0.4) 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 25% 42%, rgba(255,42,95,0.5) 50%, transparent 100%),
+                radial-gradient(1px 1px at 90% 45%, rgba(255,255,255,0.5) 50%, transparent 100%);
+            z-index: 0;
+        }
+
+        /* Retro Synthwave Perspective Floor Grid */
+        .retro-floor {
+            position: absolute;
+            bottom: -10%;
+            left: -50%;
+            right: -50%;
+            height: 46%;
+            background: 
+                linear-gradient(to bottom, rgba(7, 3, 22, 1) 0%, rgba(45, 12, 95, 0.25) 35%, rgba(112, 26, 185, 0.45) 100%);
+            transform: perspective(380px) rotateX(62deg);
+            transform-origin: bottom center;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .retro-floor::before {
+            content: '';
+            position: absolute;
+            inset: -100% 0 0 0;
+            background-image: 
+                linear-gradient(to right, rgba(168, 85, 247, 0.35) 2px, transparent 2px),
+                linear-gradient(to bottom, rgba(168, 85, 247, 0.35) 2px, transparent 2px);
+            background-size: 56px 48px;
+            animation: gridMove 8s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(48px); }
+        }
+
+        /* Top Navigation Icons */
+        .nav-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 10, 35, 0.65);
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-btn:active {
+            transform: scale(0.92);
+        }
+
+        .nav-btn-cyan {
+            border: 2px solid rgba(0, 210, 255, 0.65);
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.35), inset 0 0 8px rgba(0, 210, 255, 0.25);
+            color: #38bdf8;
+        }
+
+        .nav-btn-cyan:hover {
+            box-shadow: 0 0 18px rgba(0, 210, 255, 0.7), inset 0 0 12px rgba(0, 210, 255, 0.4);
+        }
+
+        .nav-btn-purple {
+            border: 2px solid rgba(192, 132, 252, 0.65);
+            box-shadow: 0 0 12px rgba(192, 132, 252, 0.35), inset 0 0 8px rgba(192, 132, 252, 0.25);
+            color: #c084fc;
+        }
+
+        .nav-btn-purple:hover {
+            box-shadow: 0 0 18px rgba(192, 132, 252, 0.7), inset 0 0 12px rgba(192, 132, 252, 0.4);
+        }
+
+        /* Player Cards */
+        .player-card {
+            width: 88px;
+            height: 98px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 8px 9px;
+            background: rgba(12, 8, 32, 0.75);
+            transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            position: relative;
+        }
+
+        /* Broken neon tube accent look */
+        .player-card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: 18px;
+            width: 8px;
+            height: 4px;
+            background: var(--bg-dark);
+        }
+
+        .player-card.x-card {
+            border: 2px solid rgba(0, 210, 255, 0.35);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.12);
+            opacity: 0.65;
+        }
+
+        .player-card.x-card.active {
+            border: 2.5px solid #38bdf8;
+            box-shadow: 
+                0 0 18px rgba(0, 210, 255, 0.75),
+                inset 0 0 14px rgba(0, 210, 255, 0.35);
+            opacity: 1;
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        .player-card.o-card {
+            border: 2px solid rgba(255, 42, 95, 0.35);
+            box-shadow: 0 0 10px rgba(255, 42, 95, 0.12);
+            opacity: 0.65;
+        }
+
+        .player-card.o-card.active {
+            border: 2.5px solid #ff3b6b;
+            box-shadow: 
+                0 0 20px rgba(255, 42, 95, 0.85),
+                inset 0 0 14px rgba(255, 42, 95, 0.38);
+            opacity: 1;
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        .player-label {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .x-card .player-label {
+            color: #7dd3fc;
+            text-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+        }
+
+        .o-card .player-label {
+            color: #fda4af;
+            text-shadow: 0 0 6px rgba(255, 42, 95, 0.9);
+        }
+
+        .vs-text {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+
+        /* 3-Ring Win Indicator Pill (Matches screenshot center indicator) */
+        .round-tracker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            height: 24px;
+            margin-top: 10px;
+        }
+
+        .tracker-line {
+            position: absolute;
+            width: 82px;
+            height: 2.5px;
+            background: #ffffff;
+            border-radius: 2px;
+            box-shadow: 0 0 8px #ffffff, 0 0 14px #ff2a5f;
+            z-index: 2;
+        }
+
+        .tracker-rings {
+            display: flex;
+            gap: 6px;
+            z-index: 1;
+        }
+
+        .tracker-ring {
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            border: 2.5px solid rgba(255, 75, 115, 0.65);
+            box-shadow: 0 0 8px rgba(255, 42, 95, 0.6), inset 0 0 4px rgba(255, 42, 95, 0.5);
+            background: rgba(20, 5, 25, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .tracker-ring.win-x {
+            border-color: #38bdf8;
+            background: rgba(0, 210, 255, 0.35);
+            box-shadow: 0 0 12px #00d2ff, inset 0 0 6px #00d2ff;
+        }
+
+        .tracker-ring.win-o {
+            border-color: #ff2a5f;
+            background: rgba(255, 42, 95, 0.4);
+            box-shadow: 0 0 12px #ff2a5f, inset 0 0 6px #ff2a5f;
+        }
+
+        /* 3D Tilted Neon Game Board */
+        .board-stage {
+            perspective: 820px;
+            width: 100%;
+            max-width: 375px;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            padding: 10px;
+        }
+
+        .board-3d {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform: rotateX(24deg);
+            transform-style: preserve-3d;
+            border-radius: 26px;
+            background: linear-gradient(145deg, rgba(22, 14, 58, 0.86) 0%, rgba(11, 7, 34, 0.94) 100%);
+            border: 3.5px solid #d8b4fe;
+            box-shadow: 
+                0 16px 0 -2px rgba(76, 29, 149, 0.85),
+                0 24px 38px rgba(0, 0, 0, 0.85),
+                0 0 22px rgba(192, 132, 252, 0.85),
+                inset 0 0 24px rgba(168, 85, 247, 0.45);
+            padding: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0;
+            transition: transform 0.4s ease;
+        }
+
+        /* Subtle break in right neon border to match image art style */
+        .board-3d::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 38%;
+            width: 6px;
+            height: 12px;
+            background: #10082c;
+            border-radius: 2px;
+        }
+
+        /* Inner Grid Lines */
+        .grid-line-v1, .grid-line-v2, .grid-line-h1, .grid-line-h2 {
+            position: absolute;
+            background: rgba(167, 139, 250, 0.42);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.45);
+            pointer-events: none;
+        }
+
+        .grid-line-v1 { left: 33.33%; top: 4%; bottom: 4%; width: 2px; }
+        .grid-line-v2 { left: 66.66%; top: 4%; bottom: 4%; width: 2px; }
+        .grid-line-h1 { top: 33.33%; left: 4%; right: 4%; height: 2px; }
+        .grid-line-h2 { top: 66.66%; left: 4%; right: 4%; height: 2px; }
+
+        /* Board Cells */
+        .cell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transform-style: preserve-3d;
+        }
+
+        .cell:hover:not(.occupied) {
+            background: radial-gradient(circle, rgba(192, 132, 252, 0.14) 0%, transparent 70%);
+            border-radius: 14px;
+        }
+
+        /* 3D Extruded Neon Pieces */
+        .piece-wrapper {
+            width: 74%;
+            height: 74%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: popIn3D 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform-style: preserve-3d;
+        }
+
+        @keyframes popIn3D {
+            0% {
+                opacity: 0;
+                transform: translateZ(35px) scale(0.45);
+            }
+            100% {
+                opacity: 1;
+                transform: translateZ(8px) scale(1);
+            }
+        }
+
+        /* Shadow reflection underneath pieces on the board */
+        .piece-shadow {
+            position: absolute;
+            width: 86%;
+            height: 86%;
+            transform: translateY(11px) scaleY(0.92);
+            opacity: 0.32;
+            filter: blur(2px);
+            pointer-events: none;
+        }
+
+        /* Glowing X Piece */
+        .neon-x {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.8));
+            transition: all 0.3s ease;
+        }
+
+        .neon-x.dimmed {
+            opacity: 0.42;
+            filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.35));
+        }
+
+        .neon-x.winner {
+            filter: drop-shadow(0 0 14px #00d2ff) drop-shadow(0 0 24px #ffffff);
+            transform: translateZ(14px) scale(1.06);
+        }
+
+        /* Glowing 3D Double-Rim O Piece (Matches screenshot red/white neon O) */
+        .neon-o {
+            width: 88%;
+            height: 88%;
+            border-radius: 50%;
+            position: relative;
+            border: 3.5px solid #ffd6e0;
+            box-shadow: 
+                0 6px 0 #9f1239,
+                0 9px 14px rgba(0, 0, 0, 0.7),
+                0 0 14px #ff2a5f,
+                0 0 26px rgba(255, 42, 95, 0.85),
+                inset 0 0 12px #ff2a5f;
+            background: radial-gradient(circle, rgba(255, 42, 95, 0.25) 0%, rgba(159, 18, 57, 0.45) 100%);
+            transition: all 0.3s ease;
+        }
+
+        .neon-o::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            box-shadow: inset 0 0 8px #ff2a5f;
+        }
+
+        .neon-o.dimmed {
+            opacity: 0.35;
+            border-color: rgba(255, 160, 180, 0.5);
+            box-shadow: 0 3px 0 rgba(136, 19, 55, 0.5), 0 0 8px rgba(255, 42, 95, 0.3);
+            background: transparent;
+        }
+
+        .neon-o.winner {
+            border-color: #ffffff;
+            box-shadow: 
+                0 7px 0 #be123c,
+                0 12px 20px rgba(0, 0, 0, 0.8),
+                0 0 20px #ff2a5f,
+                0 0 36px #ff2a5f,
+                inset 0 0 16px #ff2a5f;
+            background: radial-gradient(circle, rgba(255, 42, 95, 0.55) 0%, rgba(190, 18, 60, 0.75) 100%);
+            transform: translateZ(14px) scale(1.06);
+        }
+
+        /* Winning Strike Laser Beam */
+        .win-beam-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            transform: translateZ(22px);
+            overflow: visible;
+        }
+
+        .win-beam-line {
+            stroke: #ffffff;
+            stroke-width: 7.5;
+            stroke-linecap: round;
+            stroke-dasharray: 450;
+            stroke-dashoffset: 450;
+            animation: drawBeam 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .win-beam-line.beam-o {
+            filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #ff2a5f) drop-shadow(0 0 24px #ff9e00);
+        }
+
+        .win-beam-line.beam-x {
+            filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #00d2ff) drop-shadow(0 0 24px #38bdf8);
+        }
+
+        @keyframes drawBeam {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Bottom Title Typography ("Tic Tac Toe" matching glowing gradient style) */
+        .game-title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: clamp(2rem, 8vw, 2.75rem);
+            letter-spacing: -0.5px;
+            display: flex;
+            gap: 12px;
+            z-index: 5;
+            margin-bottom: 12px;
+        }
+
+        .title-tic {
+            color: #ffffff;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 22px #00d2ff,
+                0 0 38px #0284c7;
+        }
+
+        .title-tac {
+            color: #ffffff;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 22px #c084fc,
+                0 0 38px #9333ea;
+        }
+
+        .title-toe {
+            color: #ffffff;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 22px #fb7185,
+                0 0 38px #f59e0b;
+        }
+
+        /* Custom Neon Modal / Overlay */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 2, 18, 0.78);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            padding: 20px;
+        }
+
+        .modal-backdrop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 340px;
+            background: linear-gradient(160deg, rgba(24, 14, 58, 0.95) 0%, rgba(10, 6, 28, 0.98) 100%);
+            border: 2px solid #c084fc;
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), inset 0 0 18px rgba(168, 85, 247, 0.2);
+            text-align: center;
+            transform: scale(0.92);
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-backdrop.show .modal-card {
+            transform: scale(1);
+        }
+
+        .neon-action-btn {
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid #38bdf8;
+            background: rgba(0, 210, 255, 0.15);
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(0, 210, 255, 0.4);
+        }
+
+        .neon-action-btn:hover {
+            background: rgba(0, 210, 255, 0.3);
+            box-shadow: 0 0 22px rgba(0, 210, 255, 0.75);
+        }
+
+        .neon-action-btn.pink {
+            border-color: #ff2a5f;
+            background: rgba(255, 42, 95, 0.18);
+            box-shadow: 0 0 14px rgba(255, 42, 95, 0.4);
+        }
+
+        .neon-action-btn.pink:hover {
+            background: rgba(255, 42, 95, 0.32);
+            box-shadow: 0 0 22px rgba(255, 42, 95, 0.75);
+        }
+
+        /* Status Toast Banner */
+        .status-pill {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            padding: 5px 14px;
+            border-radius: 999px;
+            background: rgba(18, 11, 46, 0.8);
+            border: 1px solid rgba(192, 132, 252, 0.4);
+            color: #e9d5ff;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Stars & Perspective Grid -->
+    <div class="stars"></div>
+    <div class="retro-floor"></div>
+
+    <!-- Top Header Controls & Scoreboard -->
+    <header class="w-full max-w-md px-5 pt-4 pb-1 flex flex-col items-center z-10">
+        <div class="w-full flex items-start justify-between">
+            <!-- Back / Reset Match Button -->
+            <button id="reset-btn" class="nav-btn nav-btn-cyan" title="Restart Round" aria-label="Restart Round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16 5L6 12L16 19V5Z" />
+                </svg>
+            </button>
+
+            <!-- Player X vs Player O Cards -->
+            <div class="flex items-center gap-3 mt-3">
+                <!-- X Card -->
+                <div id="card-x" class="player-card x-card active">
+                    <svg width="34" height="34" viewBox="0 0 40 40" class="mt-1">
+                        <path d="M8 8 L32 32 M32 8 L8 32" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round" style="filter: drop-shadow(0 0 6px #00d2ff);" />
+                    </svg>
+                    <span id="label-x" class="player-label">PLAYER</span>
+                </div>
+
+                <span class="vs-text">VS</span>
+
+                <!-- O Card -->
+                <div id="card-o" class="player-card o-card">
+                    <div class="w-8 h-8 rounded-full border-[3.5px] border-rose-200 mt-1" style="box-shadow: 0 0 10px #ff2a5f, inset 0 0 6px #ff2a5f;"></div>
+                    <span id="label-o" class="player-label">PLAYER</span>
+                </div>
+            </div>
+
+            <!-- Settings Button -->
+            <button id="settings-btn" class="nav-btn nav-btn-purple" title="Game Settings" aria-label="Game Settings">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- 3-Ring Series Progress Indicator -->
+        <div class="round-tracker" title="Best of 3 Rounds">
+            <div class="tracker-line"></div>
+            <div class="tracker-rings">
+                <div id="ring-0" class="tracker-ring"></div>
+                <div id="ring-1" class="tracker-ring"></div>
+                <div id="ring-2" class="tracker-ring"></div>
+            </div>
+        </div>
+
+        <!-- Interactive Status Banner (Click to play next round when round ends) -->
+        <div id="status-banner" class="status-pill mt-3">
+            PLAYER X TURN
+        </div>
+    </header>
+
+    <!-- Main 3D Perspective Board -->
+    <main class="board-stage">
+        <div id="board" class="board-3d">
+            <!-- Internal Grid Dividers -->
+            <div class="grid-line-v1"></div>
+            <div class="grid-line-v2"></div>
+            <div class="grid-line-h1"></div>
+            <div class="grid-line-h2"></div>
+
+            <!-- 9 Interactive Cells -->
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+
+            <!-- Winning Laser Line Overlay -->
+            <svg id="win-svg" class="win-beam-svg" viewBox="0 0 300 300"></svg>
+        </div>
+    </main>
+
+    <!-- Glowing Bottom Title -->
+    <footer class="z-10 pb-4 flex flex-col items-center">
+        <h1 class="game-title">
+            <span class="title-tic">Tic</span>
+            <span class="title-tac">Tac</span>
+            <span class="title-toe">Toe</span>
+        </h1>
+    </footer>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop">
+        <div class="modal-card">
+            <h2 class="text-lg font-bold tracking-wider text-purple-200 mb-1" style="text-shadow: 0 0 10px #c084fc;">GAME SETTINGS</h2>
+            <p class="text-xs text-purple-300/70 mb-5 font-sans">Customize your neon arena</p>
+
+            <div class="flex flex-col gap-3 mb-5">
+                <button id="toggle-mode-btn" class="neon-action-btn">
+                    MODE: 2 PLAYERS (PVP)
+                </button>
+                <button id="toggle-sound-btn" class="neon-action-btn pink">
+                    SOUND FX: ON
+                </button>
+                <button id="reset-series-btn" class="neon-action-btn" style="border-color: #c084fc; box-shadow: 0 0 12px rgba(192,132,252,0.4);">
+                    RESET SERIES SCORE
+                </button>
+            </div>
+
+            <button id="close-settings-btn" class="text-xs tracking-widest text-slate-300 hover:text-white uppercase py-2 px-4">
+                CLOSE
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Neon Synthwave Tic Tac Toe
+         * Features 3D perspective board, synthesized Tone.js audio, PvP & Smart AI modes,
+         * and 3-round series tracking.
+         */
+        class NeonTicTacToe {
+            constructor() {
+                // Game state
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                this.vsAI = false; // Default to Player vs Player matching the screenshot ("PLAYER vs PLAYER")
+                this.soundEnabled = true;
+                this.roundWinners = []; // Stores 'X', 'O', or 'D' up to 3 rounds
+                this.autoNextTimer = null;
+
+                // Winning combinations with SVG coordinates (0-300 viewBox)
+                this.winConditions = [
+                    { combo: [0, 1, 2], coords: [28, 50, 272, 50] },
+                    { combo: [3, 4, 5], coords: [28, 150, 272, 150] },
+                    { combo: [6, 7, 8], coords: [28, 250, 272, 250] },
+                    { combo: [0, 3, 6], coords: [50, 28, 50, 272] },
+                    { combo: [1, 4, 7], coords: [150, 28, 150, 272] },
+                    { combo: [2, 5, 8], coords: [250, 28, 250, 272] },
+                    { combo: [0, 4, 8], coords: [28, 28, 272, 272] },
+                    { combo: [2, 4, 6], coords: [272, 28, 28, 272] }
+                ];
+
+                // DOM Elements
+                this.cells = document.querySelectorAll('.cell');
+                this.cardX = document.getElementById('card-x');
+                this.cardO = document.getElementById('card-o');
+                this.labelO = document.getElementById('label-o');
+                this.statusBanner = document.getElementById('status-banner');
+                this.winSvg = document.getElementById('win-svg');
+                this.rings = [
+                    document.getElementById('ring-0'),
+                    document.getElementById('ring-1'),
+                    document.getElementById('ring-2')
+                ];
+
+                // Modals & Controls
+                this.settingsModal = document.getElementById('settings-modal');
+                this.resetBtn = document.getElementById('reset-btn');
+                this.settingsBtn = document.getElementById('settings-btn');
+                this.closeSettingsBtn = document.getElementById('close-settings-btn');
+                this.toggleModeBtn = document.getElementById('toggle-mode-btn');
+                this.toggleSoundBtn = document.getElementById('toggle-sound-btn');
+                this.resetSeriesBtn = document.getElementById('reset-series-btn');
+
+                // Initialize Synthesizers
+                this.initAudio();
+                this.bindEvents();
+                this.updateTurnUI();
+            }
+
+            initAudio() {
+                this.synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.18, sustain: 0.05, release: 0.3 }
+                }).toDestination();
+                this.synth.volume.value = -8;
+            }
+
+            playTone(notes, duration = '16n') {
+                if (!this.soundEnabled) return;
+                try {
+                    if (Tone.context.state !== 'running') {
+                        Tone.start();
+                    }
+                    this.synth.triggerAttackRelease(notes, duration);
+                } catch (e) {
+                    // Fallback silent catch if browser blocks audio before gesture
+                }
+            }
+
+            bindEvents() {
+                this.cells.forEach(cell => {
+                    cell.addEventListener('click', () => {
+                        const index = parseInt(cell.dataset.index, 10);
+                        this.handleCellClick(index);
+                    });
+                });
+
+                this.resetBtn.addEventListener('click', () => {
+                    this.playTone(['C4', 'G3'], '32n');
+                    this.resetRound();
+                });
+
+                this.statusBanner.addEventListener('click', () => {
+                    if (!this.gameActive) {
+                        this.playTone(['E4', 'B4'], '32n');
+                        this.resetRound();
+                    }
+                });
+
+                this.settingsBtn.addEventListener('click', () => {
+                    this.playTone('A4', '32n');
+                    this.settingsModal.classList.add('show');
+                });
+
+                this.closeSettingsBtn.addEventListener('click', () => {
+                    this.playTone('E4', '32n');
+                    this.settingsModal.classList.remove('show');
+                });
+
+                this.settingsModal.addEventListener('click', (e) => {
+                    if (e.target === this.settingsModal) {
+                        this.settingsModal.classList.remove('show');
+                    }
+                });
+
+                this.toggleModeBtn.addEventListener('click', () => {
+                    this.vsAI = !this.vsAI;
+                    this.toggleModeBtn.textContent = this.vsAI ? 'MODE: VS AI BOT' : 'MODE: 2 PLAYERS (PVP)';
+                    this.labelO.textContent = this.vsAI ? 'AI BOT' : 'PLAYER';
+                    this.playTone(['C5', 'E5'], '16n');
+                    this.resetSeries();
+                });
+
+                this.toggleSoundBtn.addEventListener('click', () => {
+                    this.soundEnabled = !this.soundEnabled;
+                    this.toggleSoundBtn.textContent = this.soundEnabled ? 'SOUND FX: ON' : 'SOUND FX: OFF';
+                    if (this.soundEnabled) this.playTone('G5', '16n');
+                });
+
+                this.resetSeriesBtn.addEventListener('click', () => {
+                    this.playTone(['G4', 'C4'], '16n');
+                    this.resetSeries();
+                    this.settingsModal.classList.remove('show');
+                });
+            }
+
+            handleCellClick(index) {
+                if (!this.gameActive || this.board[index] !== null) return;
+                if (this.vsAI && this.currentPlayer === 'O') return;
+
+                this.makeMove(index, this.currentPlayer);
+
+                if (this.gameActive && this.vsAI && this.currentPlayer === 'O') {
+                    setTimeout(() => this.makeAIMove(), 420);
+                }
+            }
+
+            makeMove(index, player) {
+                this.board[index] = player;
+                this.renderPiece(index, player);
+
+                // Sound effect for X vs O
+                if (player === 'X') {
+                    this.playTone(['E5', 'B5'], '16n');
+                } else {
+                    this.playTone(['C5', 'G5'], '16n');
+                }
+
+                const winResult = this.checkWin(player);
+                if (winResult) {
+                    this.handleWin(player, winResult);
+                    return;
+                }
+
+                if (!this.board.includes(null)) {
+                    this.handleDraw();
+                    return;
+                }
+
+                this.currentPlayer = player === 'X' ? 'O' : 'X';
+                this.updateTurnUI();
+            }
+
+            renderPiece(index, player) {
+                const cell = this.cells[index];
+                cell.classList.add('occupied');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'piece-wrapper';
+
+                if (player === 'X') {
+                    wrapper.innerHTML = `
+                        <svg class="piece-shadow" viewBox="0 0 100 100">
+                            <path d="M22 22 L78 78 M78 22 L22 78" stroke="#0284c7" stroke-width="14" stroke-linecap="round"/>
+                        </svg>
+                        <svg class="neon-x" viewBox="0 0 100 100">
+                            <path d="M22 22 L78 78 M78 22 L22 78" stroke="#38bdf8" stroke-width="13" stroke-linecap="round"/>
+                            <path d="M22 22 L78 78 M78 22 L22 78" stroke="#e0f2fe" stroke-width="5" stroke-linecap="round"/>
+                        </svg>
+                    `;
+                } else {
+                    wrapper.innerHTML = `
+                        <div class="neon-o"></div>
+                    `;
+                }
+
+                cell.appendChild(wrapper);
+            }
+
+            checkWin(player) {
+                for (const condition of this.winConditions) {
+                    const [a, b, c] = condition.combo;
+                    if (this.board[a] === player && this.board[b] === player && this.board[c] === player) {
+                        return condition;
+                    }
+                }
+                return null;
+            }
+
+            handleWin(player, winResult) {
+                this.gameActive = false;
+                this.playTone(player === 'X' ? ['E5', 'G#5', 'B5', 'E6'] : ['C5', 'E5', 'G5', 'C6'], '8n');
+
+                // Highlight winning pieces & dim non-winning pieces just like the screenshot
+                this.cells.forEach((cell, idx) => {
+                    const piece = cell.querySelector('.neon-x, .neon-o');
+                    if (!piece) return;
+                    if (winResult.combo.includes(idx)) {
+                        piece.classList.add('winner');
+                    } else {
+                        piece.classList.add('dimmed');
+                    }
+                });
+
+                // Draw glowing laser strike line
+                const [x1, y1, x2, y2] = winResult.coords;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('class', `win-beam-line ${player === 'O' ? 'beam-o' : 'beam-x'}`);
+                this.winSvg.appendChild(line);
+
+                // Record round winner in 3-ring indicator
+                if (this.roundWinners.length >= 3) {
+                    this.roundWinners = [];
+                }
+                this.roundWinners.push(player);
+                this.updateRingsUI();
+
+                const name = player === 'O' && this.vsAI ? 'AI BOT' : `PLAYER ${player}`;
+                this.statusBanner.textContent = `${name} WINS! • TAP FOR NEXT`;
+                this.statusBanner.style.borderColor = player === 'X' ? '#38bdf8' : '#ff2a5f';
+                this.statusBanner.style.boxShadow = player === 'X' 
+                    ? '0 0 16px rgba(0, 210, 255, 0.6)' 
+                    : '0 0 16px rgba(255, 42, 95, 0.65)';
+            }
+
+            handleDraw() {
+                this.gameActive = false;
+                this.playTone(['D4', 'A3'], '8n');
+
+                this.cells.forEach(cell => {
+                    const piece = cell.querySelector('.neon-x, .neon-o');
+                    if (piece) piece.classList.add('dimmed');
+                });
+
+                this.statusBanner.textContent = 'DRAW ROUND • TAP FOR NEXT';
+                this.statusBanner.style.borderColor = '#c084fc';
+            }
+
+            makeAIMove() {
+                if (!this.gameActive) return;
+
+                // 1. Check if AI can win immediately
+                let move = this.findBestSpot('O');
+                // 2. Block player X from winning
+                if (move === null) move = this.findBestSpot('X');
+                // 3. Take center if free
+                if (move === null && this.board[4] === null) move = 4;
+                // 4. Take a random available corner or side
+                if (move === null) {
+                    const emptyIndices = this.board
+                        .map((val, idx) => (val === null ? idx : null))
+                        .filter(val => val !== null);
+                    move = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                }
+
+                if (move !== null && move !== undefined) {
+                    this.makeMove(move, 'O');
+                }
+            }
+
+            findBestSpot(targetPlayer) {
+                for (const { combo } of this.winConditions) {
+                    const values = combo.map(i => this.board[i]);
+                    if (values.filter(v => v === targetPlayer).length === 2 && values.includes(null)) {
+                        return combo[values.indexOf(null)];
+                    }
+                }
+                return null;
+            }
+
+            updateTurnUI() {
+                if (this.currentPlayer === 'X') {
+                    this.cardX.classList.add('active');
+                    this.cardO.classList.remove('active');
+                    this.statusBanner.textContent = 'PLAYER X TURN';
+                    this.statusBanner.style.borderColor = 'rgba(56, 189, 248, 0.55)';
+                    this.statusBanner.style.boxShadow = '0 0 12px rgba(0, 210, 255, 0.25)';
+                } else {
+                    this.cardO.classList.add('active');
+                    this.cardX.classList.remove('active');
+                    this.statusBanner.textContent = this.vsAI ? 'AI BOT THINKING...' : 'PLAYER O TURN';
+                    this.statusBanner.style.borderColor = 'rgba(255, 42, 95, 0.55)';
+                    this.statusBanner.style.boxShadow = '0 0 12px rgba(255, 42, 95, 0.25)';
+                }
+            }
+
+            updateRingsUI() {
+                this.rings.forEach((ring, i) => {
+                    ring.className = 'tracker-ring';
+                    if (this.roundWinners[i] === 'X') ring.classList.add('win-x');
+                    if (this.roundWinners[i] === 'O') ring.classList.add('win-o');
+                });
+            }
+
+            resetRound() {
+                clearTimeout(this.autoNextTimer);
+                this.board = Array(9).fill(null);
+                this.gameActive = true;
+                this.currentPlayer = 'X';
+                this.winSvg.innerHTML = '';
+
+                this.cells.forEach(cell => {
+                    cell.innerHTML = '';
+                    cell.classList.remove('occupied');
+                });
+
+                this.updateTurnUI();
+            }
+
+            resetSeries() {
+                this.roundWinners = [];
+                this.updateRingsUI();
+                this.resetRound();
+            }
+        }
+
+        // Start game on load
+        window.addEventListener('DOMContentLoaded', () => {
+            new NeonTicTacToe();
+        });
+    </script>
+</body>
+</html>
+```
